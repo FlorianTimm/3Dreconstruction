@@ -10,12 +10,13 @@ import features
 
 # Download images from http://www.robots.ox.ac.uk/~vgg/data/data-mview.html
 
+
 def house():
     input_path = 'imgs/house/'
     camera_filepath = 'imgs/house/3D/house.00{0}.P'
 
     cameras = [Camera(processor.read_matrix(camera_filepath.format(i)))
-            for i in range(9)]
+               for i in range(9)]
     [c.factor() for c in cameras]
 
     points3d = processor.read_matrix(input_path + '3D/house.p3d').T  # 3 x n
@@ -25,7 +26,8 @@ def house():
 
     index1 = 2
     index2 = 4
-    img1 = cv2.imread(input_path + 'house.00' + str(index1) + '.pgm')  # left image
+    img1 = cv2.imread(input_path + 'house.00' +
+                      str(index1) + '.pgm')  # left image
     img2 = cv2.imread(input_path + 'house.00' + str(index2) + '.pgm')
 
     # fig = plt.figure()
@@ -87,7 +89,35 @@ def dino():
     return points1, points2, intrinsic
 
 
-points1, points2, intrinsic = dino()
+def halle():
+    # Dino
+    img1 = cv2.imread('../eigenerAnsatz/bildverband2/DJI_0289.JPG')
+    img2 = cv2.imread('../eigenerAnsatz/bildverband2/DJI_0288.JPG')
+    print("Bilder geladen")
+    pts1, pts2 = features.find_correspondence_points(img1, img2)
+    print("Punkte gefunden")
+    points1 = processor.cart2hom(pts1)
+    points2 = processor.cart2hom(pts2)
+
+    fig, ax = plt.subplots(1, 2)
+    ax[0].autoscale_view('tight')
+    ax[0].imshow(cv2.cvtColor(img1, cv2.COLOR_BGR2RGB))
+    ax[0].plot(points1[0], points1[1], 'r.')
+    ax[1].autoscale_view('tight')
+    ax[1].imshow(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
+    ax[1].plot(points2[0], points2[1], 'r.')
+    fig.show()
+
+    height, width, ch = img1.shape
+    intrinsic = np.array([  # for dino
+        [3030.65, 0, width / 2-6],
+        [0, 3030.65, height / 2+17],
+        [0, 0, 1]])
+
+    return points1, points2, intrinsic
+
+
+points1, points2, intrinsic = halle()
 
 # Calculate essential matrix with 2d points.
 # Result will be up to a scale
@@ -110,19 +140,22 @@ for i, P2 in enumerate(P2s):
 
     # Convert P2 from camera view to world view
     P2_homogenous = np.linalg.inv(np.vstack([P2, [0, 0, 0, 1]]))
-    d2 = np.dot(P2_homogenous[:3, :4], d1)
+    d2 = P2_homogenous[:3, :4] @ d1
 
     if d1[2] > 0 and d2[2] > 0:
         ind = i
 
 P2 = np.linalg.inv(np.vstack([P2s[ind], [0, 0, 0, 1]]))[:3, :4]
+print(P2)
 #tripoints3d = structure.reconstruct_points(points1n, points2n, P1, P2)
 tripoints3d = structure.linear_triangulation(points1n, points2n, P1, P2)
 
 fig = plt.figure()
 fig.suptitle('3D reconstructed', fontsize=16)
-ax = fig.gca(projection='3d')
+ax = fig.add_subplot(projection='3d')
 ax.plot(tripoints3d[0], tripoints3d[1], tripoints3d[2], 'b.')
+ax.plot([0], [0], [0], 'r.')
+ax.plot(-P2[0, 3], -P2[1, 3], -P2[2, 3], 'r.')
 ax.set_xlabel('x axis')
 ax.set_ylabel('y axis')
 ax.set_zlabel('z axis')

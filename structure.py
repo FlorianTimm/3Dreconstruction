@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def reconstruct_points(p1, p2, m1, m2):
     num_points = p1.shape[1]
     res = np.ones((4, num_points))
@@ -156,10 +157,10 @@ def compute_P_from_essential(E):
 
     # create 4 possible camera matrices (Hartley p 258)
     W = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    P2s = [np.vstack((np.dot(U, np.dot(W, V)).T, U[:, 2])).T,
-          np.vstack((np.dot(U, np.dot(W, V)).T, -U[:, 2])).T,
-          np.vstack((np.dot(U, np.dot(W.T, V)).T, U[:, 2])).T,
-          np.vstack((np.dot(U, np.dot(W.T, V)).T, -U[:, 2])).T]
+    P2s = [np.vstack(((U @ W @ V).T, U[:, 2])).T,
+           np.vstack(((U @ W @ V).T, -U[:, 2])).T,
+           np.vstack(((U @ W.T @ V).T, U[:, 2])).T,
+           np.vstack(((U @ W.T @ V).T, -U[:, 2])).T]
 
     return P2s
 
@@ -196,8 +197,8 @@ def compute_image_to_image_matrix(x1, x2, compute_essential=False):
     U, S, V = np.linalg.svd(F)
     S[-1] = 0
     if compute_essential:
-        S = [1, 1, 0] # Force rank 2 and equal eigenvalues
-    F = np.dot(U, np.dot(np.diag(S), V))
+        S = [1, 1, 0]  # Force rank 2 and equal eigenvalues
+    F = U @ np.diag(S) @ V
 
     return F
 
@@ -211,7 +212,7 @@ def scale_and_translate_points(points):
     x = points[0]
     y = points[1]
     center = points.mean(axis=1)  # mean of each row
-    cx = x - center[0] # center the points
+    cx = x - center[0]  # center the points
     cy = y - center[1]
     dist = np.sqrt(np.power(cx, 2) + np.power(cy, 2))
     scale = np.sqrt(2) / dist.mean()
@@ -243,7 +244,7 @@ def compute_normalized_image_to_image_matrix(p1, p2, compute_essential=False):
 
     # reverse preprocessing of coordinates
     # We know that P1' E P2 = 0
-    F = np.dot(T1.T, np.dot(F, T2))
+    F = T1.T@F@T2
 
     return F / F[2, 2]
 
